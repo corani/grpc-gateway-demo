@@ -8,25 +8,27 @@ import (
 	"net"
 	"net/http"
 
-	"github.wdf.sap.corp/I331555/grpc-gateway-test/gen/go/helloworld"
-
 	"github.com/getkin/kin-openapi/openapi3"
 	"github.com/gorilla/mux"
 	"github.com/grpc-ecosystem/grpc-gateway/v2/runtime"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/credentials/insecure"
+
+	pb "github.wdf.sap.corp/I331555/grpc-gateway-test/gen/go/helloworld"
 )
 
 type server struct {
-	helloworld.UnimplementedGreeterServer
+	pb.UnimplementedGreeterServer
 }
 
 func NewServer() *server {
 	return &server{}
 }
 
-func (s *server) SayHello(ctx context.Context, in *helloworld.HelloRequest) (*helloworld.HelloReply, error) {
-	return &helloworld.HelloReply{Message: "hello, " + in.Name}, nil
+func (s *server) SayHello(ctx context.Context, in *pb.HelloRequest) (*pb.HelloReply, error) {
+	log.Printf("[grpc] SayHello to %q", in.Name)
+
+	return &pb.HelloReply{Message: "hello, " + in.Name}, nil
 }
 
 func startGRPC(port int) {
@@ -37,7 +39,7 @@ func startGRPC(port int) {
 
 	s := grpc.NewServer()
 
-	helloworld.RegisterGreeterServer(s, &server{})
+	pb.RegisterGreeterServer(s, &server{})
 
 	log.Printf("Serving gRPC on 0.0.0.0:%d", port)
 	go func() {
@@ -57,7 +59,7 @@ func RegisterGateway(r *mux.Router, port int, prefix string) {
 
 	handler := runtime.NewServeMux()
 
-	if err := helloworld.RegisterGreeterHandler(context.Background(), handler, c); err != nil {
+	if err := pb.RegisterGreeterHandler(context.Background(), handler, c); err != nil {
 		log.Fatalln("Failed to register gateway:", err)
 	}
 

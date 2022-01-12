@@ -10,7 +10,7 @@ function print_usage {
   echo "  -h               prints this help"
   echo "  -b               build project"
   echo "  -t               test project"
-  echo "  -r               run project"
+  echo "  -r               run server"
   echo "  -i               install tools"
   echo "  -g               run generators"
 }
@@ -33,12 +33,18 @@ function go_generate {
 
 function go_build {
     mkdir -p bin 
-    echo "[CMD] go build -o bin/greeter"
+    echo "[CMD] go build -o bin/server"
     go build -trimpath \
-        -o bin/greeter cmd/server/*.go
-    echo "[CMD] go build -o bin/greeter.debug"
+        -o bin/server cmd/server/*.go
+    echo "[CMD] go build -o bin/server.debug"
     go build -gcflags='all=-N -l' \
-        -o bin/greeter.debug cmd/server/*.go
+        -o bin/server.debug cmd/server/*.go
+    echo "[CMD] go build -o bin/client"
+    go build -trimpath \
+        -o bin/client cmd/client/*.go
+    echo "[CMD] go build -o bin/client.debug"
+    go build -gcflags='all=-N -l' \
+        -o bin/client.debug cmd/client/*.go
 }
 
 function go_run {
