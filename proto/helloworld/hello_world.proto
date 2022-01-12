@@ -1,0 +1,39 @@
+syntax = "proto3";
+
+package helloworld;
+option go_package = "github.wdf.sap.corp/I331555/gen/go/helloworld";
+
+import "google/api/annotations.proto";
+import "protoc-gen-openapiv2/options/annotations.proto";
+
+option (grpc.gateway.protoc_gen_openapiv2.options.openapiv2_swagger) = {
+    info: {
+        title: "Greeter";
+        version: "1.0";
+    };
+
+    schemes: HTTP;
+    consumes: "application/json";
+    produces: "application/json";
+};
+
+// The greeting service definition
+service Greeter {
+    // Sends a greeting
+    rpc SayHello (HelloRequest) returns (HelloReply) {
+        option (google.api.http) = {
+            post: "/v1/example/hello"
+            body: "*"
+        };
+    }
+}
+
+// The request message containing the user's name
+message HelloRequest {
+    string name = 1;
+}
+
+// The response message containing the greeting
+message HelloReply {
+    string message = 1;
+}
