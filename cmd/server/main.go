@@ -1,98 +1,26 @@
 package main
 
 import (
-	"context"
-	"encoding/json"
-	"fmt"
 	"log"
-	"net"
 	"net/http"
 
-	"github.com/getkin/kin-openapi/openapi3"
 	"github.com/gorilla/mux"
-	"github.com/grpc-ecosystem/grpc-gateway/v2/runtime"
-	"google.golang.org/grpc"
-	"google.golang.org/grpc/credentials/insecure"
 
-	pb "github.wdf.sap.corp/I331555/grpc-gateway-test/gen/go/helloworld"
+	"github.wdf.sap.corp/I331555/grpc-gateway-test/docs/api"
+	"github.wdf.sap.corp/I331555/grpc-gateway-test/internal/gateway"
+	"github.wdf.sap.corp/I331555/grpc-gateway-test/internal/server"
+	"github.wdf.sap.corp/I331555/grpc-gateway-test/static"
 )
 
-type server struct {
-	pb.UnimplementedGreeterServer
-}
-
-func NewServer() *server {
-	return &server{}
-}
-
-func (s *server) SayHello(ctx context.Context, in *pb.HelloRequest) (*pb.HelloReply, error) {
-	log.Printf("[grpc] SayHello to %q", in.Name)
-
-	return &pb.HelloReply{Message: "hello, " + in.Name}, nil
-}
-
-func startGRPC(port int) {
-	l, err := net.Listen("tcp", fmt.Sprintf(":%d", port))
-	if err != nil {
-		log.Fatalln("Failed to listen:", err)
-	}
-
-	s := grpc.NewServer()
-
-	pb.RegisterGreeterServer(s, &server{})
-
-	log.Printf("Serving gRPC on 0.0.0.0:%d", port)
-	go func() {
-		log.Fatal(s.Serve(l))
-	}()
-}
-
-func RegisterGateway(r *mux.Router, port int, prefix string) {
-	c, err := grpc.DialContext(
-		context.Background(), fmt.Sprintf("0.0.0.0:%d", port),
-		grpc.WithBlock(),
-		grpc.WithTransportCredentials(insecure.NewCredentials()),
-	)
-	if err != nil {
-		log.Fatalln("Failed to dial server:", err)
-	}
-
-	handler := runtime.NewServeMux()
-
-	if err := pb.RegisterGreeterHandler(context.Background(), handler, c); err != nil {
-		log.Fatalln("Failed to register gateway:", err)
-	}
-
-	r.NewRoute().PathPrefix(prefix).Handler(handler)
-}
-
-func RegisterOpenAPIHandler(r *mux.Router, path string) {
-	spec, err := openapi3.NewLoader().LoadFromFile("docs/api/helloworld/hello_world.swagger.json")
-	if err != nil {
-		log.Fatalf("failed to load: %v", err)
-	}
-
-	r.NewRoute().Path(path).HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		w.Header().Add("Content-Type", "application/json")
-		if err := json.NewEncoder(w).Encode(spec); err != nil {
-			log.Printf("failed to encode: %v", err)
-		}
-	})
-}
-
-func RegisterStaticContent(r *mux.Router, prefix string) {
-	r.NewRoute().PathPrefix(prefix).Handler(
-		http.StripPrefix(prefix,
-			http.FileServer(http.Dir("static/"))))
-}
-
 func main() {
-	startGRPC(8989)
+	s := server.NewServer(8989)
+	s.Start()
 
 	r := mux.NewRouter()
-	RegisterOpenAPIHandler(r, "/openapi3.json")
-	RegisterGateway(r, 8989, "/v1")
-	RegisterStaticContent(r, "/static/")
+
+	gateway.RegisterGateway(r, s, "/v1")
+	api.RegisterOpenAPIHandler(r, "/openapi3.json")
+	static.RegisterStaticContent(r, "/static/")
 
 	srv := &http.Server{
 		Addr:    ":8990",

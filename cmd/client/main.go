@@ -1,13 +1,10 @@
 package main
 
 import (
-	"context"
 	"flag"
 	"log"
 
-	"google.golang.org/grpc"
-
-	pb "github.wdf.sap.corp/I331555/grpc-gateway-test/gen/go/helloworld"
+	"github.wdf.sap.corp/I331555/grpc-gateway-test/internal/client"
 )
 
 func main() {
@@ -20,17 +17,7 @@ func main() {
 	flag.StringVar(&name, "name", "world", "name to be greeted")
 	flag.Parse()
 
-	c, err := grpc.Dial(endpoint, grpc.WithInsecure())
-	if err != nil {
-		log.Fatalf("Failed to dial: %v", err)
-	}
+	c := client.NewClient(endpoint)
 
-	client := pb.NewGreeterClient(c)
-
-	r, err := client.SayHello(context.Background(), &pb.HelloRequest{Name: name})
-	if err != nil {
-		log.Fatalf("Failed to greet: %v", err)
-	}
-
-	log.Printf("Greeting: %v", r.Message)
+	log.Printf("Greeting: %v", c.SayHello(name))
 }
